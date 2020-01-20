@@ -11,6 +11,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RedisWebApplication.Services;
+using StackExchange.Redis.Extensions.Core;
+using StackExchange.Redis.Extensions.Core.Abstractions;
+using StackExchange.Redis.Extensions.Core.Configuration;
+using StackExchange.Redis.Extensions.Core.Implementations;
+using StackExchange.Redis.Extensions.Newtonsoft;
 
 namespace RedisWebApplication
 {
@@ -28,10 +33,20 @@ namespace RedisWebApplication
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
             services.AddSingleton<RedisService>();
+
+
+            var redisConfiguration = Configuration.GetSection("Redis").Get<RedisConfiguration>();
+
+            services.AddSingleton(redisConfiguration);
+            services.AddSingleton<IRedisCacheClient, RedisCacheClient>();
+            services.AddSingleton<IRedisCacheConnectionPoolManager, RedisCacheConnectionPoolManager>();
+            services.AddSingleton<IRedisDefaultCacheClient, RedisDefaultCacheClient>();
+            services.AddSingleton<ISerializer, NewtonsoftSerializer>();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, RedisService redisService)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, IRedisCacheClient cacheClient)
         {
             if (env.IsDevelopment())
             {
@@ -43,7 +58,8 @@ namespace RedisWebApplication
             }
 
             app.UseHttpsRedirection();
-            redisService.Connect();
+
+            //redisService.Connect();
             app.UseMvc();
         }
     }

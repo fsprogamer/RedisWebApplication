@@ -1,47 +1,63 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Serilog;
 using StackExchange.Redis;
+using StackExchange.Redis.Extensions.Core.Abstractions;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace RedisWebApplication.Services
 {
     public class RedisService
     {
-        private readonly string _redisHost;
-        private readonly int _redisPort;
-
-        private ConnectionMultiplexer _redis;
-
-        public RedisService(IConfiguration config)
+        IRedisCacheClient cacheClient;
+        public RedisService(IRedisCacheClient _cacheClient)
         {
-            _redisHost = config["Redis:Host"];
-            _redisPort = Convert.ToInt32(config["Redis:Port"]);
+            cacheClient = _cacheClient;
         }
         public void Connect()
         {
-            try
-            {
-                var configString = $"{_redisHost}:{_redisPort},connectRetry=3";
-                _redis = ConnectionMultiplexer.Connect(configString);
-            }
-            catch (RedisConnectionException err)
-            {
-                Log.Error(err.ToString());
-                throw err;
-            }
-            Log.Debug("Connected to Redis");
+
         }
-        public async Task<bool> Set(string key, string value)
+        public async Task<bool> Set(string key, User value)
         {
-            var db = _redis.GetDatabase();
-            return await db.StringSetAsync(key, value);
+            bool added = await cacheClient.Db0.AddAsync(key, value, DateTimeOffset.Now.AddMinutes(10));            
+            return added;
         }
 
-        public async Task<string> Get(string key)
+        public async Task<bool> SetCollection(IList<Tuple<string, User>> values)
         {
-            var db = _redis.GetDatabase();
-            return await db.StringGetAsync(key);
+            bool added = await cacheClient.Db0.AddAllAsync(values);
+            return added;
         }
+
+        public async Task SetHashSet(RedisKey hashKey, HashEntry[] values)
+        {
+            await cacheClient.Db0.Database.HashSetAsync(hashKey, values);
+                //.HashSetAsync(values);            
+        }
+
+        internal async Task<HashEntry[]> HashGetAllAsync(RedisKey hashKey)
+        {
+            return await cacheClient.Db0.Database.HashGetAllAsync(hashKey);
+        }
+        public async Task<string> Get(string key)
+        {            
+            var cachedUser = await cacheClient.Db0.GetAsync<User>("my cache key"); 
+            return string.Empty;
+
+            //var db = _redis.GetDatabase();
+            //return await db.StringGetAsync(key);
+        }
+
+    }
+
+    public class User
+    {
+       public long Id { get;set;}
+       public string Firstname { get;set;}
+       public string Lastname { get;set;}
+       public string Twitter { get;set;}
+       public string Blog { get;set;}
     }
 }
