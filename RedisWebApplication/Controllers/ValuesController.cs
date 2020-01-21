@@ -1,11 +1,11 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Mvc;
+using RedisWebApplication.Model;
+using RedisWebApplication.Services;
+using Serilog;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using RedisWebApplication.Services;
-using Serilog;
-using StackExchange.Redis;
 
 namespace RedisWebApplication.Controllers
 {
@@ -23,7 +23,6 @@ namespace RedisWebApplication.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<int>> GetAsync(int id)
         {
-            //await _redisService.Set("key1", $"{id}");
             var definitely = await _redisService.Get("key2");
             Log.Information(definitely);
             return id;
@@ -40,6 +39,92 @@ namespace RedisWebApplication.Controllers
             Log.Information($"Add user: {result}");
             return Ok();
         }
+        [HttpGet("addcostattribute")]
+        public async Task<ActionResult<int>> AddCostAttribute()
+        {
+            List<CalculatedElementData> calculatedElementDatas = FillElementList();
+
+            int chunk_size = 1000;
+            int chunk_count = (int)Math.Floor((decimal)calculatedElementDatas.Count / chunk_size);
+            List<CalculatedElementData> part;
+
+            Log.Information($"Add costattribute, begin");
+            for (int i = 0; i <= chunk_count; i++)
+            {
+                var chunk_length = (i == chunk_count) ? (calculatedElementDatas.Count % chunk_size) : chunk_size;
+                part = calculatedElementDatas.GetRange(chunk_size * i, chunk_length);
+                
+                IList<Tuple<string, CalculatedElementData>> values = new List<Tuple<string, CalculatedElementData>>();
+
+                values = part.Select(x => new Tuple<string, CalculatedElementData>($"CalculatedElementData:CostingVersionId:{x.CostingVersionId}", x)).ToList();
+
+                var result = await _redisService.SetCollection(values);                               
+            }
+
+            Log.Information($"Add costattribute, end");
+
+            return Ok();
+        }
+
+        [HttpGet("addcostattribute2")]
+        public async Task<ActionResult<int>> AddCostAttribute2()
+        {
+            CalculatedElementData[] calculatedElementDatas = FillElementList().ToArray();
+            Log.Information($"Add costattribute, begin");
+            var result = await _redisService.SetCollection("collection_key", calculatedElementDatas);
+
+            Log.Information($"Add user collection: {result}");
+            return Ok();
+        }
+
+        [HttpGet("getcostattribute2")]
+        public async Task<ActionResult<int>> GetCostAttribute2()
+        {
+            CalculatedElementData[] calculatedElementDatas = FillElementList().ToArray();
+            Log.Information($"Add costattribute, begin");
+            var result = await _redisService.GetCollection<CalculatedElementData>(new [] {"collection_key" });
+
+            Log.Information($"Add user collection: {result}");
+            return Ok();
+        }
+
+        [HttpGet("addcostattribute3")]
+        public async Task<ActionResult<int>> AddCostAttribute3()
+        {
+            CalculatedElementData[] calculatedElementDatas = FillElementList().ToArray();
+            Log.Information($"Add costattribute to list, begin");
+
+            await _redisService.AddToList("list_key", calculatedElementDatas);
+
+            Log.Information($"Add user collection to list, end");
+            return Ok();
+        }
+
+        private static List<CalculatedElementData> FillElementList()
+        {
+            int Min = 0;
+            int Max = 20;
+            Random randNum = new Random();
+            List<CalculatedElementData> calculatedElementDatas = new List<CalculatedElementData>();
+
+            for (int index = 0; index < 2000; index++)
+            {
+                decimal[] Values = new decimal[50];                
+                for (int i = 0; i < Values.Length; i++)
+                {
+                    Values[i] = randNum.Next(Min, Max);
+                }
+                
+                CalculatedAttributeData[] calculatedAttributeDatas = new CalculatedAttributeData[20];
+                for (int i = 0; i < calculatedAttributeDatas.Length; i++)
+                {
+                    calculatedAttributeDatas[i] = new CalculatedAttributeData { Characteristics = 3, Type = 1, CostAttributeName = randNum.Next(Min, Max).ToString(), Values = Values };
+                }
+                calculatedElementDatas.Add(new CalculatedElementData() { CostingVersionId = index, StartMonth = 1, StartYear = 2020, AppliedFinancialFactors = 1, Attributes = calculatedAttributeDatas });
+            }
+            return calculatedElementDatas;
+        }
+
         [HttpPost("addcollection")]
         public async Task<ActionResult<int>> AddCollection([FromBody]IList<User> users)
         {
@@ -53,42 +138,22 @@ namespace RedisWebApplication.Controllers
 
             var result = await _redisService.SetCollection(values);
 
-            Log.Information($"Add user: {result}");
+            Log.Information($"Add user collection: {result}");
             return Ok();
         }
 
         [HttpPost("addhashset")]
-        public async Task<ActionResult<int>> AddHashSet([FromBody]IList<User> users)
+        public async Task<ActionResult<int>> AddHashSet([FromBody]IEnumerable<User> users)
         {
-            //RedisKey hashKey = "hashKey";
-
-            //HashEntry[] redisBookHash = {
-            //    new HashEntry("title", "Redis for .NET Developers"),
-            //    new HashEntry("year", 2016),
-            //    new HashEntry("author", "Taswar Bhatti")
-            //  };
-
-            //await _redisService.SetHashSet(hashKey, redisBookHash);
-            //var result1 = await _redisService.HashGetAllAsync(hashKey);
-
 
             if (!ModelState.IsValid)
                 return BadRequest("Not a valid model");
 
-            foreach (var user in users)
-            {
-                RedisKey userHashKey = $"user.{user.Id}";
-                HashEntry[] redisUser = { new HashEntry("Firstname", user.Firstname),
-                                          new HashEntry("Lastname", user.Lastname),
-                                          new HashEntry("Twitter", user.Twitter),
-                                          new HashEntry("Blog", user.Blog)
-                                        };
-                await _redisService.SetHashSet(userHashKey, redisUser);
-            }
+            await _redisService.SetHashSet(users);
 
-            var result2 = await _redisService.HashGetAllAsync("user.1");
+            var result = await _redisService.HashGetAllAsync("user.1");
 
-            //Log.Information($"Add user: {result}");
+            Log.Information($"Add hashset: {result}");
             return Ok();
         }
         // GET api/values
