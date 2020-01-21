@@ -23,7 +23,7 @@ namespace RedisWebApplication.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<int>> GetAsync(int id)
         {
-            var definitely = await _redisService.Get("key2");
+            var definitely = await _redisService.Get<string>("key2");
             Log.Information(definitely);
             return id;
         }
@@ -39,10 +39,25 @@ namespace RedisWebApplication.Controllers
             Log.Information($"Add user: {result}");
             return Ok();
         }
-        [HttpGet("addcostattribute")]
-        public async Task<ActionResult<int>> AddCostAttribute()
+        [HttpGet("addcostattribute/{id}")]
+        public async Task<ActionResult<CalculatedElementData>> AddCostAttribute(int id)
         {
-            List<CalculatedElementData> calculatedElementDatas = FillElementList();
+            const int amount = 1;
+            CalculatedElementData calculatedElementData = FillElementList(amount).First();
+            var keyValue = $"CalculatedElementData:CostingVersionId:{id}";
+
+            var result = await _redisService.Set(keyValue, calculatedElementData);
+
+            var ret = await _redisService.Get<CalculatedElementData>(keyValue);
+
+            Log.Information($"Add user: {result}");
+            return Ok(ret);
+        }
+        [HttpGet("addcostattributes")]
+        public async Task<ActionResult<int>> AddCostAttributes()
+        {
+            const int amount = 200000;
+            List<CalculatedElementData> calculatedElementDatas = FillElementList(amount);
 
             int chunk_size = 1000;
             int chunk_count = (int)Math.Floor((decimal)calculatedElementDatas.Count / chunk_size);
@@ -69,7 +84,8 @@ namespace RedisWebApplication.Controllers
         [HttpGet("addcostattribute2")]
         public async Task<ActionResult<int>> AddCostAttribute2()
         {
-            CalculatedElementData[] calculatedElementDatas = FillElementList().ToArray();
+            const int amount = 200000;
+            CalculatedElementData[] calculatedElementDatas = FillElementList(amount).ToArray();
             Log.Information($"Add costattribute, begin");
             var result = await _redisService.SetCollection("collection_key", calculatedElementDatas);
 
@@ -80,7 +96,8 @@ namespace RedisWebApplication.Controllers
         [HttpGet("getcostattribute2")]
         public async Task<ActionResult<int>> GetCostAttribute2()
         {
-            CalculatedElementData[] calculatedElementDatas = FillElementList().ToArray();
+            const int amount = 200000;
+            CalculatedElementData[] calculatedElementDatas = FillElementList(amount).ToArray();
             Log.Information($"Add costattribute, begin");
             var result = await _redisService.GetCollection<CalculatedElementData>(new [] {"collection_key" });
 
@@ -91,7 +108,8 @@ namespace RedisWebApplication.Controllers
         [HttpGet("addcostattribute3")]
         public async Task<ActionResult<int>> AddCostAttribute3()
         {
-            CalculatedElementData[] calculatedElementDatas = FillElementList().ToArray();
+            const int amount = 200000;
+            CalculatedElementData[] calculatedElementDatas = FillElementList(amount).ToArray();
             Log.Information($"Add costattribute to list, begin");
 
             await _redisService.AddToList("list_key", calculatedElementDatas);
@@ -100,14 +118,14 @@ namespace RedisWebApplication.Controllers
             return Ok();
         }
 
-        private static List<CalculatedElementData> FillElementList()
+        private static List<CalculatedElementData> FillElementList(int amount)
         {
             int Min = 0;
             int Max = 20;
             Random randNum = new Random();
             List<CalculatedElementData> calculatedElementDatas = new List<CalculatedElementData>();
 
-            for (int index = 0; index < 2000; index++)
+            for (int index = 0; index < amount; index++)
             {
                 decimal[] Values = new decimal[50];                
                 for (int i = 0; i < Values.Length; i++)

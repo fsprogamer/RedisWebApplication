@@ -62,10 +62,9 @@ namespace RedisWebApplication.Services
         {
             return await cacheClient.Db0.Database.HashGetAllAsync(hashKey);
         }
-        public async Task<string> Get(string key)
+        public async Task<T> Get<T>(string key)
         {            
-            var cachedUser = await cacheClient.Db0.GetAsync<User>("my cache key"); 
-            return string.Empty;
+            return await cacheClient.Db0.GetAsync<T>(key);             
 
             //var db = _redis.GetDatabase();
             //return await db.StringGetAsync(key);
