@@ -5,6 +5,7 @@ using StackExchange.Redis;
 using StackExchange.Redis.Extensions.Core.Abstractions;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace RedisWebApplication.Services
@@ -32,17 +33,70 @@ namespace RedisWebApplication.Services
             return added;
         }
 
-        public async Task<long> SetCollection<T>(string key, T[] values) where T : class
-        {            
+        public async Task<long> SAdd<T>(string key, T[] values) where T : class
+        {    
+            //SADD
             var added = await cacheClient.Db0.SetAddAllAsync(key, CommandFlags.None, values);
             return added;
         }
 
-        public async Task<IDictionary<string,T>> GetCollection<T>(IEnumerable<string> keys)
+        public async Task<IDictionary<string,T>> HGetAll<T>(IEnumerable<string> keys)
         {
+            //HGETALL
             var result = await cacheClient.Db0.GetAllAsync<T>(keys);
             return result;
         }
+        public async Task<IEnumerable<T>> SMembers<T>(string key)
+        {
+            //SMEMBERS
+            var result = await cacheClient.Db0.SetMembersAsync<T>(key);
+            return result;
+        }
+        public async Task<long> SetLength(string hashKey)
+        {
+            //SCARD
+            var result = await cacheClient.Db0.Database.SetLengthAsync(hashKey);
+            return result;
+        }
+        public IEnumerable<RedisValue> SScan(string key, int offset, int pagesize)
+        {
+            //SSCAN
+            var result = cacheClient.Db0.Database.SetScan(key, pageOffset:offset/*, pageSize: pagesize*/ );
+            return result;
+        }
+
+        public async Task<long> LPush<T>(string key, T[] values) where T : class
+        {
+            //LPUSH
+            Parallel.ForEach(values, new ParallelOptions(){ MaxDegreeOfParallelism = 3},
+            async value =>
+            {
+                await cacheClient.Db0.ListAddToLeftAsync<T>(key, value );
+            });
+
+            //foreach(var value in values)
+            // await cacheClient.Db0.ListAddToLeftAsync<T>(key, value );
+            return 0;
+        }
+        public async Task<RedisValue[]> LRangeAsync<T>(string key, long start, long stop)
+        {
+            //LRANGE
+            var result = await cacheClient.Db0.Database.ListRangeAsync(key, start, stop);
+            return result;
+        }
+        public RedisValue[] LRange<T>(string key, long start, long stop)
+        {
+            //LRANGE
+            var result = cacheClient.Db0.Database.ListRange(key, start, stop);
+            return result;
+        }
+        public async Task<long> LLen(string Key)
+        {
+            //LLEN
+            var result = await cacheClient.Db0.Database.ListLengthAsync(Key);
+            return result;
+        }
+        //------------------------------------------------------
 
         public async Task SetHashSet(IEnumerable<User> users)
         {

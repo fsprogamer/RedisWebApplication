@@ -261,3 +261,4 @@ __pycache__/
 *.pyc
 /RedisWebApplication/Logs/redis_log20200120.txt
 /RedisWebApplication/Logs/redis_log20200121.txt
+/RedisWebApplication/Logs

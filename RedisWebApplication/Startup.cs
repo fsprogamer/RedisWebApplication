@@ -3,12 +3,14 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using RedisWebApplication.Model;
 using RedisWebApplication.Services;
 using StackExchange.Redis.Extensions.Core;
 using StackExchange.Redis.Extensions.Core.Abstractions;
 using StackExchange.Redis.Extensions.Core.Configuration;
 using StackExchange.Redis.Extensions.Core.Implementations;
 using StackExchange.Redis.Extensions.Newtonsoft;
+using System.Threading;
 
 namespace RedisWebApplication
 {
@@ -16,6 +18,7 @@ namespace RedisWebApplication
     {
         public Startup(IConfiguration configuration)
         {
+            ThreadPool.SetMinThreads(20, 20);
             Configuration = configuration;
         }
 
@@ -27,7 +30,6 @@ namespace RedisWebApplication
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
             services.AddSingleton<RedisService>();
 
-
             var redisConfiguration = Configuration.GetSection("Redis").Get<RedisConfiguration>();
 
             services.AddSingleton(redisConfiguration);
@@ -36,6 +38,12 @@ namespace RedisWebApplication
             services.AddSingleton<IRedisDefaultCacheClient, RedisDefaultCacheClient>();
             services.AddSingleton<ISerializer, NewtonsoftSerializer>();
 
+            services.AddSingleton<MongoService>();
+            services.Configure<MongoDbSettings>(options =>
+            {
+                options.ConnectionString = Configuration.GetSection("MongoDB:path").Value;
+                options.Database = Configuration.GetSection("MongoDB:name").Value;
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

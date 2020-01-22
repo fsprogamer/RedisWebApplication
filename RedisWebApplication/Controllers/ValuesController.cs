@@ -2,7 +2,9 @@
 using RedisWebApplication.Model;
 using RedisWebApplication.Services;
 using Serilog;
+using StackExchange.Redis;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,12 +16,136 @@ namespace RedisWebApplication.Controllers
     public class ValuesController : ControllerBase
     {
         private readonly RedisService _redisService;
-        public ValuesController(RedisService redisService)
+        private readonly MongoService _mongoService;
+        public ValuesController(RedisService redisService, MongoService mongoService)
         {
-            // Set RedisService property
             _redisService = redisService;
+            _mongoService = mongoService;
         }
 
+        
+        [HttpPost("addcostattribute")]
+        public async Task<ActionResult<CalculatedElementData>> AddCostAttribute([FromBody]CalculatedElementData calculatedElementData)
+        {
+            var keyValue = $"CalculatedElementData:CostingVersionId:{calculatedElementData.CostingVersionId}";
+
+            var result = await _redisService.Set(keyValue, calculatedElementData);            
+
+            Log.Information($"Add user: {result}");
+            return Ok();
+        }
+        [HttpGet("getcostattribute_redis/{id}")]
+        public async Task<ActionResult<CalculatedElementData>> GetCostAttributeRedis(int id)
+        {
+            var keyValue = $"CalculatedElementData:CostingVersionId:{id}";
+
+            var ret = await _redisService.Get<CalculatedElementData>(keyValue);
+
+            Log.Information($"Get user: Ok");
+            return Ok(ret);
+        }
+        [HttpGet("getcostattribute_mongo/{id}")]
+        public async Task<ActionResult<CalculatedElementData>> GetCostAttributeMongo(int id)
+        {
+            var keyValue = $"CalculatedElementData:CostingVersionId:{id}";
+
+            var ret = await _mongoService.Get(id);
+
+            Log.Information($"Get user: Ok");
+            return Ok(ret);
+        }
+        //------------------------------SET----------------------------------
+
+        [HttpGet("addcostattribute2")]
+        public async Task<ActionResult<int>> AddCostAttribute2()
+        {
+            const int amount = 50000;
+            List<CalculatedElementData> calculatedElementDatas = FillElementList(amount);
+
+            int chunk_size = 1000;
+            int chunk_count = (int)Math.Floor((decimal)calculatedElementDatas.Count / chunk_size);            
+
+            Log.Information($"Add costattribute, begin");
+            for (int i = 0; i < chunk_count; i++)
+            {
+                var chunk_length = (i == chunk_count) ? (calculatedElementDatas.Count % chunk_size) : chunk_size;
+                CalculatedElementData[] part = calculatedElementDatas.GetRange(chunk_size * i, chunk_length).ToArray();
+
+                var result = await _redisService.SAdd("collection_key", part);
+            }
+            //const int amount = 50000;
+            //CalculatedElementData[] calculatedElementDatas = FillElementList(amount).ToArray();
+            //Log.Information($"Add costattribute, begin");
+            //var result = await _redisService.SAdd("collection_key", calculatedElementDatas);
+
+            //Log.Information($"Add user collection: {result}");
+            return Ok();
+        }
+
+        [HttpGet("getcostattribute2")]
+        public async Task<ActionResult<int>> GetCostAttribute2()
+        {
+            int chunk_size = 10;
+            
+            Log.Information($"Get costattribute, begin");
+
+            var length = await _redisService.SetLength("collection_key");
+            int chunk_count = (int)Math.Floor((decimal)length / chunk_size);
+
+            for (int i = 0; i < chunk_count; i++)
+            {
+                var chunk_length = (i == chunk_count) ? (length % chunk_size) : chunk_size;
+                var result = _redisService.SScan("collection_key", i*chunk_size , (int)chunk_length);
+            }
+            Log.Information($"Get costattribute, end");
+            return Ok(/*result*/);
+        }
+        //----------------------------LIST----------------------------------------------
+        [HttpGet("addcostattribute3")]
+        public async Task<ActionResult<int>> AddCostAttribute3()
+        {
+            const int amount = 200000;
+            CalculatedElementData[] calculatedElementDatas = FillElementList(amount).ToArray();
+            Log.Information($"Add costattribute list, begin");
+            var result = await _redisService.LPush<CalculatedElementData>("list_key", calculatedElementDatas);
+
+            Log.Information($"Add costattribute list: {result}");
+            return Ok();
+        }
+        [HttpGet("getcostattribute3")]
+        public async Task<ActionResult<int>> GetCostAttribute3()
+        {
+            int chunk_size = 1000;
+            object syncLock = new object();
+            
+            Log.Information($"Get costattribute list, begin");
+
+            var length = await _redisService.LLen("list_key");
+            int chunk_count = (int)Math.Floor((decimal)length / chunk_size);
+
+            var partitoner = Partitioner.Create(0, length, chunk_size);
+            RedisValue[] bag = new RedisValue[length];
+
+            Parallel.ForEach(partitoner, new ParallelOptions() { MaxDegreeOfParallelism = 3 },
+            value =>
+            {
+                  //lock (syncLock) {
+    
+                    _redisService.LRange<CalculatedElementData>("list_key", value.Item1, value.Item2).CopyTo(bag,value.Item1);
+                  //  }
+            });
+
+            //for (int i = 0; i < chunk_count; i++)
+            //{
+            //    var chunk_length = (i == chunk_count) ? (length % chunk_size) : chunk_size;
+            //    var result = await _redisService.LRangeAsync<CalculatedElementData>("list_key", i * chunk_size, (i + 1) * chunk_size - 1);
+            //}
+
+
+            Log.Information($"Get costattribute list, end");
+            return Ok(/*result*/);
+        }
+        //---------------------------------------------------------------------------
         [HttpGet("{id}")]
         public async Task<ActionResult<int>> GetAsync(int id)
         {
@@ -38,20 +164,6 @@ namespace RedisWebApplication.Controllers
 
             Log.Information($"Add user: {result}");
             return Ok();
-        }
-        [HttpGet("addcostattribute/{id}")]
-        public async Task<ActionResult<CalculatedElementData>> AddCostAttribute(int id)
-        {
-            const int amount = 1;
-            CalculatedElementData calculatedElementData = FillElementList(amount).First();
-            var keyValue = $"CalculatedElementData:CostingVersionId:{id}";
-
-            var result = await _redisService.Set(keyValue, calculatedElementData);
-
-            var ret = await _redisService.Get<CalculatedElementData>(keyValue);
-
-            Log.Information($"Add user: {result}");
-            return Ok(ret);
         }
         [HttpGet("addcostattributes")]
         public async Task<ActionResult<int>> AddCostAttributes()
@@ -81,32 +193,10 @@ namespace RedisWebApplication.Controllers
             return Ok();
         }
 
-        [HttpGet("addcostattribute2")]
-        public async Task<ActionResult<int>> AddCostAttribute2()
-        {
-            const int amount = 200000;
-            CalculatedElementData[] calculatedElementDatas = FillElementList(amount).ToArray();
-            Log.Information($"Add costattribute, begin");
-            var result = await _redisService.SetCollection("collection_key", calculatedElementDatas);
 
-            Log.Information($"Add user collection: {result}");
-            return Ok();
-        }
 
-        [HttpGet("getcostattribute2")]
-        public async Task<ActionResult<int>> GetCostAttribute2()
-        {
-            const int amount = 200000;
-            CalculatedElementData[] calculatedElementDatas = FillElementList(amount).ToArray();
-            Log.Information($"Add costattribute, begin");
-            var result = await _redisService.GetCollection<CalculatedElementData>(new [] {"collection_key" });
-
-            Log.Information($"Add user collection: {result}");
-            return Ok();
-        }
-
-        [HttpGet("addcostattribute3")]
-        public async Task<ActionResult<int>> AddCostAttribute3()
+        [HttpGet("addcostattribute4")]
+        public async Task<ActionResult<int>> AddCostAttribute4()
         {
             const int amount = 200000;
             CalculatedElementData[] calculatedElementDatas = FillElementList(amount).ToArray();
