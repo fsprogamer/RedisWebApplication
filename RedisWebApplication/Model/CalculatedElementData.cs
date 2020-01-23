@@ -4,8 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 namespace RedisWebApplication.Model
 {
      [BsonIgnoreExtraElements]
-
-    // struct cannot be deserialized
+     [Serializable]
     public class CalculatedElementData
     {
         [BsonElement("bidId")]

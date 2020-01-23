@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using MsgPack.Serialization;
 using RedisWebApplication.Model;
 using RedisWebApplication.Services;
+using StackExchange.Redis.Extensions.Binary;
 using StackExchange.Redis.Extensions.Core;
 using StackExchange.Redis.Extensions.Core.Abstractions;
 using StackExchange.Redis.Extensions.Core.Configuration;
@@ -29,14 +31,25 @@ namespace RedisWebApplication
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
             services.AddSingleton<RedisService>();
+            services.AddSingleton<RedisListService>();
+            services.AddSingleton<RedisSetService>();
+            services.AddSingleton<RedisHashSetService>();
+            
 
             var redisConfiguration = Configuration.GetSection("Redis").Get<RedisConfiguration>();
+
+
 
             services.AddSingleton(redisConfiguration);
             services.AddSingleton<IRedisCacheClient, RedisCacheClient>();
             services.AddSingleton<IRedisCacheConnectionPoolManager, RedisCacheConnectionPoolManager>();
             services.AddSingleton<IRedisDefaultCacheClient, RedisDefaultCacheClient>();
-            services.AddSingleton<ISerializer, NewtonsoftSerializer>();
+            //services.AddSingleton<ISerializer, NewtonsoftSerializer>();
+            //services.AddSingleton<ISerializer, BinarySerializer >();
+
+            
+            
+            services.AddSingleton<ISerializer, MsgPackObjectSerializerExt >();
 
             services.AddSingleton<MongoService>();
             services.Configure<MongoDbSettings>(options =>
@@ -64,4 +77,7 @@ namespace RedisWebApplication
             app.UseMvc();
         }
     }
+
+
+
 }

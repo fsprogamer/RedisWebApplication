@@ -1,8 +1,11 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using System;
+
 namespace RedisWebApplication.Model
 {
-  [BsonIgnoreExtraElements]
+    [BsonIgnoreExtraElements]
+    [Serializable]
     public class CalculatedAttributeData
     {
         [BsonElement("costAttrName")]
