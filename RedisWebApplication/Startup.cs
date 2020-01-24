@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MsgPack.Serialization;
+using RedisWebApplication.Common;
 using RedisWebApplication.Model;
 using RedisWebApplication.Services;
 using StackExchange.Redis.Extensions.Binary;
@@ -33,23 +34,20 @@ namespace RedisWebApplication
             services.AddSingleton<RedisService>();
             services.AddSingleton<RedisListService>();
             services.AddSingleton<RedisSetService>();
-            services.AddSingleton<RedisHashSetService>();
-            
+            services.AddSingleton<RedisHashSetService>();            
 
             var redisConfiguration = Configuration.GetSection("Redis").Get<RedisConfiguration>();
-
-
 
             services.AddSingleton(redisConfiguration);
             services.AddSingleton<IRedisCacheClient, RedisCacheClient>();
             services.AddSingleton<IRedisCacheConnectionPoolManager, RedisCacheConnectionPoolManager>();
             services.AddSingleton<IRedisDefaultCacheClient, RedisDefaultCacheClient>();
+
+            #region Serializer
             //services.AddSingleton<ISerializer, NewtonsoftSerializer>();
             //services.AddSingleton<ISerializer, BinarySerializer >();
-
-            
-            
             services.AddSingleton<ISerializer, MsgPackObjectSerializerExt >();
+            #endregion
 
             services.AddSingleton<MongoService>();
             services.Configure<MongoDbSettings>(options =>
@@ -57,6 +55,8 @@ namespace RedisWebApplication
                 options.ConnectionString = Configuration.GetSection("MongoDB:path").Value;
                 options.Database = Configuration.GetSection("MongoDB:name").Value;
             });
+
+            services.AddSingleton<ElementListService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

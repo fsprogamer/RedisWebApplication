@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using RedisWebApplication.Common;
 using RedisWebApplication.Model;
 using RedisWebApplication.Services;
 using Serilog;
@@ -72,7 +73,7 @@ namespace RedisWebApplication.Controllers
         public async Task<ActionResult<int>> AddCostAttribute2()
         {
             const int amount = 50000;
-            List<CalculatedElementData> calculatedElementDatas = FillElementList(amount);
+            List<CalculatedElementData> calculatedElementDatas = TestClass.FillElementList(amount);
 
             int chunk_size = 1000;
             int chunk_count = (int)Math.Floor((decimal)calculatedElementDatas.Count / chunk_size);            
@@ -86,7 +87,7 @@ namespace RedisWebApplication.Controllers
                 var result = await _redisSetService.SAdd("collection_key", part);
             }
             //const int amount = 50000;
-            //CalculatedElementData[] calculatedElementDatas = FillElementList(amount).ToArray();
+            //CalculatedElementData[] calculatedElementDatas = TestClass.FillElementList(amount).ToArray();
             //Log.Information($"Add costattribute, begin");
             //var result = await _redisService.SAdd("collection_key", calculatedElementDatas);
 
@@ -119,7 +120,7 @@ namespace RedisWebApplication.Controllers
         public async Task<ActionResult<int>> AddCostAttribute3()
         {
             const int amount = 200000;
-            CalculatedElementData[] calculatedElementDatas = FillElementList(amount).ToArray();
+            CalculatedElementData[] calculatedElementDatas = TestClass.FillElementList(amount).ToArray();
             Log.Information($"Add costattribute list, begin");
             var result = await _redisListService.LPush<CalculatedElementData>("list_key", calculatedElementDatas);
 
@@ -159,7 +160,7 @@ namespace RedisWebApplication.Controllers
         public async Task<ActionResult<int>> AddCostAttributes()
         {
             const int amount = 200000;
-            List<CalculatedElementData> calculatedElementDatas = FillElementList(amount);
+            List<CalculatedElementData> calculatedElementDatas = TestClass.FillElementList(amount);
 
             int chunk_size = 1000;
             int chunk_count = (int)Math.Floor((decimal)calculatedElementDatas.Count / chunk_size);
@@ -187,38 +188,13 @@ namespace RedisWebApplication.Controllers
         public async Task<ActionResult<int>> AddCostAttribute4()
         {
             const int amount = 200000;
-            CalculatedElementData[] calculatedElementDatas = FillElementList(amount).ToArray();
+            CalculatedElementData[] calculatedElementDatas = TestClass.FillElementList(amount).ToArray();
             Log.Information($"Add costattribute to list, begin");
 
             await _redisListService.AddToList("list_key", calculatedElementDatas);
 
             Log.Information($"Add user collection to list, end");
             return Ok();
-        }
-
-        private static List<CalculatedElementData> FillElementList(int amount)
-        {
-            int Min = 0;
-            int Max = 20;
-            Random randNum = new Random();
-            List<CalculatedElementData> calculatedElementDatas = new List<CalculatedElementData>();
-
-            for (int index = 0; index < amount; index++)
-            {
-                decimal[] Values = new decimal[50];                
-                for (int i = 0; i < Values.Length; i++)
-                {
-                    Values[i] = randNum.Next(Min, Max);
-                }
-                
-                CalculatedAttributeData[] calculatedAttributeDatas = new CalculatedAttributeData[20];
-                for (int i = 0; i < calculatedAttributeDatas.Length; i++)
-                {
-                    calculatedAttributeDatas[i] = new CalculatedAttributeData { Characteristics = 3, Type = 1, CostAttributeName = randNum.Next(Min, Max).ToString(), Values = Values };
-                }
-                calculatedElementDatas.Add(new CalculatedElementData() { CostingVersionId = index, StartMonth = 1, StartYear = 2020, AppliedFinancialFactors = 1, Attributes = calculatedAttributeDatas });
-            }
-            return calculatedElementDatas;
         }
 
         [HttpPost("addcollection")]

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using RedisWebApplication.Common;
 using RedisWebApplication.Model;
 using RedisWebApplication.Services;
 using Serilog;
@@ -34,93 +35,144 @@ namespace RedisWebApplication.Controllers
         [HttpGet("getcostattribute/{id}")]
         public async Task<ActionResult<CalculatedElementData>> GetCostAttribute(int id)
         {
+            const string logMessage = "Get costattribute, ";
             var keyValue = $"CalculatedElementData:CostingVersionId:{id}";
-
-            var ret = await _redisService.Get<CalculatedElementData>(keyValue);
-
-            Log.Information($"Get user: Ok");
-            return Ok(ret);
+            try
+            {
+                Log.Information($"{logMessage}begin");
+                var ret = await _redisService.Get<CalculatedElementData>(keyValue);
+                Log.Information($"{logMessage}end");
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"{logMessage}error, {ex.Message}");
+                return BadRequest();
+            }
         }
 
         [HttpGet("getcostattributes")]
         public async Task<ActionResult<CalculatedElementData>> GetCostAttributes()
         {
+            const string logMessage = "Get costattributes, ";
             const int amount = 200000;
-            IEnumerable<string> keyValues = Enumerable.Range(0, amount).Select(x=>$"CalculatedElementData:CostingVersionId:{x}");
-            
-            var ret = await _redisService.GetAll<CalculatedElementData>(keyValues);
+            IEnumerable<string> keyValues = Enumerable.Range(0, amount).Select(x => $"CalculatedElementData:CostingVersionId:{x}");
+            try
+            {
+                Log.Information($"{logMessage}begin");
+                var ret = await _redisService.GetAll<CalculatedElementData>(keyValues);
+                Log.Information($"{logMessage}end");
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"{logMessage}error, {ex.Message}");
+                return BadRequest();
+            }
+        }
 
-            Log.Information($"Get user: Ok");
-            return Ok();
+        [HttpGet("getcostattributes/{id}")]
+        public async Task<ActionResult<CalculatedElementData>> GetCostAttributes(int id)
+        {
+            const string logMessage = "Get costattributes, ";
+            var keyValue = $"CalculatedElementData:CostingVersionId:{id}";
+            try
+            {
+                Log.Information($"{logMessage}begin");
+                var ret = await _redisService.Get<List<CalculatedElementData>>(keyValue);
+                Log.Information($"{logMessage}end");
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"{logMessage}error, {ex.Message}");
+                return BadRequest();
+            }
         }
 
         [HttpPost("addcostattribute")]
         public async Task<ActionResult<CalculatedElementData>> AddCostAttribute([FromBody]CalculatedElementData calculatedElementData)
         {
+            const string logMessage = "Add costattribute, ";
             var keyValue = $"CalculatedElementData:CostingVersionId:{calculatedElementData.CostingVersionId}";
-
-            var result = await _redisService.Set(keyValue, calculatedElementData);            
-
-            Log.Information($"Add user: {result}");
-            return Ok();
+            try
+            {
+                Log.Information($"{logMessage}begin");
+                var result = await _redisService.Set(keyValue, calculatedElementData);
+                Log.Information($"{logMessage}end");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"{logMessage}error, {ex.Message}");
+                return BadRequest();
+            }            
         }
 
         [HttpGet("addcostattributes")]
         public async Task<ActionResult<int>> AddCostAttributes()
         {
             const int amount = 200000;
+            const string logMessage = "Add costattributes, ";
 
             Stopwatch sw = new Stopwatch();
             sw.Start();
-            List<CalculatedElementData> calculatedElementDatas = FillElementList(amount);
+            List<CalculatedElementData> calculatedElementDatas = TestClass.FillElementList(amount);
             sw.Stop();
             Log.Information("FillElementList {0} ms", sw.ElapsedMilliseconds);
 
-            int chunk_size = 1000;
-            int chunk_count = (int)Math.Floor((decimal)calculatedElementDatas.Count / chunk_size);
-            List<CalculatedElementData> part;
-
-            Log.Information($"Add costattribute, begin");
-            for (int i = 0; i < chunk_count; i++)
+            try
             {
-                var chunk_length = (i == chunk_count) ? (calculatedElementDatas.Count % chunk_size) : chunk_size;
-                part = calculatedElementDatas.GetRange(chunk_size * i, chunk_length);
-                
-                IList<Tuple<string, CalculatedElementData>> values = new List<Tuple<string, CalculatedElementData>>();
+                int chunk_size = 1000;
+                int chunk_count = (int)Math.Floor((decimal)calculatedElementDatas.Count / chunk_size);
+                List<CalculatedElementData> part;
+                Log.Information($"{logMessage}begin");
+                for (int i = 0; i < chunk_count; i++)
+                {
+                    var chunk_length = (i == chunk_count) ? (calculatedElementDatas.Count % chunk_size) : chunk_size;
+                    part = calculatedElementDatas.GetRange(chunk_size * i, chunk_length);
 
-                values = part.Select(x => new Tuple<string, CalculatedElementData>($"CalculatedElementData:CostingVersionId:{x.CostingVersionId}", x)).ToList();
+                    IList<Tuple<string, CalculatedElementData>> values = new List<Tuple<string, CalculatedElementData>>();
 
-                var result = await _redisService.SetAll(values);                               
+                    values = part.Select(x => new Tuple<string, CalculatedElementData>($"CalculatedElementData:CostingVersionId:{x.CostingVersionId}", x)).ToList();
+
+                    var result = await _redisService.SetAll(values);
+                }
+                Log.Information($"{logMessage}end");
+                return Ok();
             }
-
-            Log.Information($"Add costattribute, end");
-
-            return Ok();
+            catch (Exception ex)
+            {
+                Log.Error($"{logMessage}error, {ex.Message}");
+                return BadRequest();
+            }
         }
-
-        private static List<CalculatedElementData> FillElementList(int amount)
+        [HttpGet("addcostattributes/{id}")]
+        public async Task<ActionResult<int>> AddCostAttributes(int id)
         {
-            int Min = 0;
-            int Max = 20;
-            Random randNum = new Random();
-            List<CalculatedElementData> calculatedElementDatas = new List<CalculatedElementData>();
+            const int amount = 200000;
+            const string logMessage = "Add costattributes, ";
 
-            for (int index = 0; index < amount; index++)
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+            List<CalculatedElementData> calculatedElementDatas = TestClass.FillElement(id, amount);
+            sw.Stop();
+            Log.Information("FillElementList {0} ms", sw.ElapsedMilliseconds);
+
+            try
             {
-                decimal[] Values = new decimal[50];                
-                for (int i = 0; i < Values.Length; i++)
-                {
-                    Values[i] = randNum.Next(Min, Max);
-                }
-                
-                CalculatedAttributeData[] calculatedAttributeDatas = new CalculatedAttributeData[20];
-                for (int i = 0; i < calculatedAttributeDatas.Length; i++)
-                {
-                    calculatedAttributeDatas[i] = new CalculatedAttributeData { Characteristics = 3, Type = 1, CostAttributeName = randNum.Next(Min, Max).ToString(), Values = Values };
-                }
-                calculatedElementDatas.Add(new CalculatedElementData() { CostingVersionId = index, StartMonth = 1, StartYear = 2020, AppliedFinancialFactors = 1, Attributes = calculatedAttributeDatas });
+                Log.Information($"{logMessage}begin");
+
+                var result = await _redisService.Set($"CalculatedElementData:CostingVersionId:{id}", calculatedElementDatas);
+
+                Log.Information($"{logMessage}end");
+                return Ok();
             }
-            return calculatedElementDatas;
-        }     
+            catch (Exception ex)
+            {
+                Log.Error($"{logMessage}error, {ex.Message}");
+                return BadRequest();
+            }
+        }
     }
 }

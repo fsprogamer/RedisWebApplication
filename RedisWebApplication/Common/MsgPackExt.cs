@@ -5,7 +5,7 @@ using System.IO;
 using System.Text;
 //using MsgPack.Serialization;
 
-namespace RedisWebApplication.Model
+namespace RedisWebApplication.Common
 {
  public class MsgPackObjectSerializerExt : ISerializer
   {
