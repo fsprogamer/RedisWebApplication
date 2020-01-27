@@ -28,16 +28,16 @@ namespace RedisWebApplication.Services
         }
         // add collection
         public async Task Add(List<CalculatedElementData> elements)
-        {            
+        {
             int chunk_size = 10000;
             int chunk_count = (int)Math.Floor((decimal)elements.Count() / chunk_size);
             List<CalculatedElementData> part;
             for (int i = 0; i < chunk_count; i++)
-                {
-                    var chunk_length = (i == chunk_count) ? (elements.Count() % chunk_size) : chunk_size;
-                    part = elements.GetRange(chunk_size * i, chunk_length);
-                    await CostAttributesCalculatedDataRepo.Add(part);
-                }
+            {
+                var chunk_length = (i == chunk_count) ? (elements.Count() % chunk_size) : chunk_size;
+                part = elements.GetRange(chunk_size * i, chunk_length);
+                await CostAttributesCalculatedDataRepo.Add(part);
+            }
             //await CostAttributesCalculatedDataRepo.Add(elements);
         }
         public async Task Delete()

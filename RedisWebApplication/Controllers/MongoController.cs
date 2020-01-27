@@ -44,7 +44,7 @@ namespace RedisWebApplication.Controllers
                 Log.Information($"{logMessage}begin");
                 var ret = await _mongoService.Get(id);
                 Log.Information($"{logMessage}end");
-                return Ok(ret);
+                return Ok(/*ret*/);
             }
             catch (Exception ex)
             {
@@ -125,6 +125,8 @@ namespace RedisWebApplication.Controllers
                 Log.Information($"{logMessage}begin");
                 var result = await _redisService.GetAll<CalculatedElementData>(keyValues);
 
+                Log.Information($"{logMessage}step 2");
+
                 await _mongoService.Add(result.Values.ToList());
                 Log.Information($"{logMessage}end");
                 return Ok();
@@ -143,7 +145,7 @@ namespace RedisWebApplication.Controllers
             {
                 Log.Information($"{logMessage}begin");
                 var result = await _redisService.Get<List<CalculatedElementData>>($"CalculatedElementData:CostingVersionId:{Id}");
-
+                Log.Information($"{logMessage}step 2");
                 await _mongoService.Add(result);
                 Log.Information($"{logMessage}end");
                 return Ok();

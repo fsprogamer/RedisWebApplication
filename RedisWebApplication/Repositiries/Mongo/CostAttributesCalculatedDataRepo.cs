@@ -24,9 +24,9 @@ namespace RedisWebApplication.Repositiries.Mongo
 
             var result = await collection.Aggregate()           
            .Match(x => //x.BidCostGroupId == guid && 
-                       x.CostingVersionId == bidId && 
-                       x.AppliedFinancialFactors == 0 && 
-                       x.AllocationId == BsonNull.Value 
+                       x.CostingVersionId == bidId //&& 
+                       //x.AppliedFinancialFactors == 0 && 
+                       //x.AllocationId == BsonNull.Value 
                        )
            .ToListAsync();
 
