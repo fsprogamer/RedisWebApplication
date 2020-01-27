@@ -90,6 +90,25 @@ namespace RedisWebApplication.Controllers
             }
         }
 
+        [HttpPost("getcostattributes")]
+        public async Task<ActionResult<CalculatedElementData>> GetCostAttributesWithParam([FromBody] CostAttributesRequest request)
+        {
+            const string logMessage = "Get costattributes, ";
+            var keyValue = $"CalculatedElementData:CostingVersionId:*.ff:*.allocId:{request.allocId}";
+            try
+            {
+                Log.Information($"{logMessage}begin");
+                var ret = await _redisService.GetAllByPatern<List<CalculatedElementData>>(keyValue);
+                Log.Information($"{logMessage}end");
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"{logMessage}error, {ex.Message}");
+                return BadRequest();
+            }
+        }
+
         [HttpPost("addcostattribute")]
         public async Task<ActionResult<CalculatedElementData>> AddCostAttribute([FromBody]CalculatedElementData calculatedElementData)
         {
@@ -164,6 +183,33 @@ namespace RedisWebApplication.Controllers
                 Log.Information($"{logMessage}begin");
 
                 var result = await _redisService.Set($"CalculatedElementData:CostingVersionId:{id}", calculatedElementDatas);
+
+                Log.Information($"{logMessage}end");
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"{logMessage}error, {ex.Message}");
+                return BadRequest();
+            }
+        }
+        [HttpPost("addcostattributes")]
+        public async Task<ActionResult<int>> AddCostAttributesWithParam([FromBody]CostAttributesRequest request)
+        {
+            const int amount = 50000;
+            const string logMessage = "Add costattributes, ";
+
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+            List<CalculatedElementData> calculatedElementDatas = TestClass.FillElement(request.id, amount);
+            sw.Stop();
+            Log.Information("FillElementList {0} ms", sw.ElapsedMilliseconds);
+
+            try
+            {
+                Log.Information($"{logMessage}begin");
+
+                var result = await _redisService.Set($"CalculatedElementData:CostingVersionId:{request.id}.ff:{request.ff}.allocId:{request.allocId}", calculatedElementDatas);
 
                 Log.Information($"{logMessage}end");
                 return Ok();

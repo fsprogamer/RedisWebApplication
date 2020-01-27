@@ -43,7 +43,13 @@ namespace RedisWebApplication.Services
             //GET
             return await cacheClient.Db0.GetAllAsync<T>(keys);
         }
-
+        public async Task<IDictionary<string, T>> GetAllByPatern<T>(string pattern)
+        {   
+            //KEYS
+            //GET
+            var keys = await cacheClient.Db0.SearchKeysAsync(pattern);
+            return await cacheClient.Db0.GetAllAsync<T>(keys);
+        }
     }
 
 }
