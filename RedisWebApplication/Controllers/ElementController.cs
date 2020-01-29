@@ -113,7 +113,7 @@ namespace RedisWebApplication.Controllers
         public async Task<ActionResult<CalculatedElementData>> AddCostAttribute([FromBody]CalculatedElementData calculatedElementData)
         {
             const string logMessage = "Add costattribute, ";
-            var keyValue = $"CalculatedElementData:CostingVersionId:{calculatedElementData.CostingVersionId}";
+            var keyValue = $"CalculatedElementData:CostingVersionId:{calculatedElementData.BidId}";
             try
             {
                 Log.Information($"{logMessage}begin");
@@ -153,7 +153,7 @@ namespace RedisWebApplication.Controllers
 
                     IList<Tuple<string, CalculatedElementData>> values = new List<Tuple<string, CalculatedElementData>>();
 
-                    values = part.Select(x => new Tuple<string, CalculatedElementData>($"CalculatedElementData:CostingVersionId:{x.CostingVersionId}", x)).ToList();
+                    values = part.Select(x => new Tuple<string, CalculatedElementData>($"CalculatedElementData:CostingVersionId:{x.BidId}", x)).ToList();
 
                     var result = await _redisService.SetAll(values);
                 }

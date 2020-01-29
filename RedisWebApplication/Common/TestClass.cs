@@ -26,7 +26,7 @@ namespace RedisWebApplication.Common
                 {
                     calculatedAttributeDatas[i] = new CalculatedAttributeData { Characteristics = 3, Type = 1, CostAttributeName = randNum.Next(Min, Max).ToString(), Values = Values };
                 }
-                calculatedElementDatas.Add(new CalculatedElementData() { CostingVersionId = index, StartMonth = 1, StartYear = 2021, AppliedFinancialFactors = 1, Attributes = calculatedAttributeDatas });
+                calculatedElementDatas.Add(new CalculatedElementData() { BidId = index, StartMonth = 1, StartYear = 2021, AppliedFinancialFactors = 1, Attributes = calculatedAttributeDatas });
             }
             return calculatedElementDatas;
         }
@@ -50,7 +50,7 @@ namespace RedisWebApplication.Common
                 {
                     calculatedAttributeDatas[i] = new CalculatedAttributeData { Characteristics = 3, Type = 1, CostAttributeName = randNum.Next(Min, Max).ToString(), Values = Values };
                 }
-                calculatedElementDatas.Add(new CalculatedElementData() { CostingVersionId = id, BidCostGroupId = Guid.NewGuid(), StartMonth = 1, StartYear = 2021, AppliedFinancialFactors = 1, Attributes = calculatedAttributeDatas });
+                calculatedElementDatas.Add(new CalculatedElementData() { BidId = id, BidCostGroupId = Guid.NewGuid(), StartMonth = 1, StartYear = 2021, AppliedFinancialFactors = 1, Attributes = calculatedAttributeDatas });
             }
             return calculatedElementDatas;
         }

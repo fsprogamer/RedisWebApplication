@@ -5,10 +5,8 @@ namespace RedisWebApplication.Model
 {
      [BsonIgnoreExtraElements]
      [Serializable]
-    public class CalculatedElementData
+    public class CalculatedElementData: BidEntity
     {
-        [BsonElement("bidId")]
-        public int CostingVersionId { get; set; }
 
         [BsonElement("costGrpId")]
         public Guid BidCostGroupId { get; set; }

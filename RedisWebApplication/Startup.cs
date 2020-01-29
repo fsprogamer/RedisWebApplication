@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MsgPack.Serialization;
 using RedisWebApplication.Common;
 using RedisWebApplication.Model;
+using RedisWebApplication.Repositiries.Mongo;
 using RedisWebApplication.Services;
 using StackExchange.Redis.Extensions.Binary;
 using StackExchange.Redis.Extensions.Core;
@@ -49,14 +50,14 @@ namespace RedisWebApplication
             services.AddSingleton<ISerializer, MsgPackObjectSerializerExt >();
             #endregion
 
+            //services.AddScoped(typeof(IMongoRepository<>), typeof(BaseMongoRepository<>));
+
             services.AddSingleton<MongoService>();
             services.Configure<MongoDbSettings>(options =>
             {
                 options.ConnectionString = Configuration.GetSection("MongoDB:path").Value;
                 options.Database = Configuration.GetSection("MongoDB:name").Value;
             });
-
-            services.AddSingleton<ElementListService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

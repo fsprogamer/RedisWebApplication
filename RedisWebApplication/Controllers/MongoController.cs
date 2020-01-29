@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using RedisWebApplication.Common;
 using RedisWebApplication.Model;
 using RedisWebApplication.Services;
 using Serilog;
@@ -6,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace RedisWebApplication.Controllers
@@ -16,15 +18,13 @@ namespace RedisWebApplication.Controllers
     {
         private readonly RedisService _redisService;
         private readonly MongoService _mongoService;
-        private readonly ElementListService _elementListService;
+
         public MongoController(RedisService redisService,
-                               MongoService mongoService,
-                               ElementListService elementListService
+                               MongoService mongoService
                                )
         {
             _redisService = redisService;
             _mongoService = mongoService;
-            _elementListService = elementListService;
         }
 
         // GET api/values
@@ -35,14 +35,16 @@ namespace RedisWebApplication.Controllers
         }
 
         [HttpGet("getcostattribute/{id}")]
-        public async Task<ActionResult<CalculatedElementData>> GetCostAttributeMongo(int id)
+        public async Task<ActionResult<CalculatedElementData>> GetCostAttributeMongo(int bidId)
         {
             const string logMessage = "Get costattribute, ";
-            var keyValue = $"CalculatedElementData:CostingVersionId:{id}";
+            var keyValue = $"CalculatedElementData:CostingVersionId:{bidId}";
+            Expression<Func<CalculatedElementData, bool>> expression = x => x.BidId == bidId;
+
             try
             {
                 Log.Information($"{logMessage}begin");
-                var ret = await _mongoService.Get(id);
+                var ret = await _mongoService.Get(expression);
                 Log.Information($"{logMessage}end");
                 return Ok(/*ret*/);
             }
@@ -61,7 +63,7 @@ namespace RedisWebApplication.Controllers
 
             Stopwatch sw = new Stopwatch();
             sw.Start();
-            List<CalculatedElementData> calculatedElementDatas = ElementListService.FillCalculatedElementDataList(amount);
+            List<CalculatedElementData> calculatedElementDatas = TestClass.FillElementList(amount);
             sw.Stop();
             Log.Information("FillElementList {0} ms", sw.ElapsedMilliseconds);
             
@@ -78,32 +80,15 @@ namespace RedisWebApplication.Controllers
                 Log.Error($"{logMessage}error, {ex.Message}");
                 return BadRequest();
             }
-        }
-        [HttpGet("deletecostattributes")]
-        public async Task<ActionResult<int>> DeleteCostAttributes()
-        {
-            const string logMessage = "Delete costattributes, ";
-            try
-            {
-                Log.Information($"{logMessage}begin");
-                await _mongoService.Delete();
-                Log.Information($"{logMessage}end");
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"{logMessage}error, {ex.Message}");
-                return BadRequest();
-            }
-        }
-        [HttpGet("deletecostattribute/{id}")]
-        public async Task<ActionResult<int>> DeleteCostAttribute(int id)
+        }       
+        [HttpGet("deletecostattribute/{bidId}")]
+        public async Task<ActionResult<int>> DeleteCostAttribute(int bidId)
         {
             const string logMessage = "Delete costattribute, ";
             try
             {
                 Log.Information($"{logMessage}begin");
-                await _mongoService.Delete(id);
+                await _mongoService.Delete(bidId);
                 Log.Information($"{logMessage}end");
                 return Ok();
             }
@@ -127,7 +112,7 @@ namespace RedisWebApplication.Controllers
 
                 Log.Information($"{logMessage}step 2");
 
-                await _mongoService.Add(result.Values.ToList());
+                await _mongoService.Add(elements:result.Values.ToList());
                 Log.Information($"{logMessage}end");
                 return Ok();
             }
@@ -137,16 +122,16 @@ namespace RedisWebApplication.Controllers
                 return BadRequest();
             }
         }
-        [HttpGet("copycostattributefromredis/{id}")]
-        public async Task<ActionResult<int>> CopyCostAttributesFromRedis(int Id)
+        [HttpGet("copycostattributefromredis/{bidId}")]
+        public async Task<ActionResult<int>> CopyCostAttributesFromRedis(int bidId)
         {
             const string logMessage = "Copy costattribute, ";
             try
             {
                 Log.Information($"{logMessage}begin");
-                var result = await _redisService.Get<List<CalculatedElementData>>($"CalculatedElementData:CostingVersionId:{Id}");
+                var result = await _redisService.Get<List<CalculatedElementData>>($"CalculatedElementData:CostingVersionId:{bidId}");
                 Log.Information($"{logMessage}step 2");
-                await _mongoService.Add(result);
+                await _mongoService.Add(elements:result);
                 Log.Information($"{logMessage}end");
                 return Ok();
             }

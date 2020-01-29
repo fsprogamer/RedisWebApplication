@@ -5,26 +5,29 @@ using RedisWebApplication.Repositiries.Mongo;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace RedisWebApplication.Services
 {
-    public class MongoService
+    public class MongoService: IMongoService<CalculatedElementData>
     {
-        CostAttributesCalculatedDataRepo costAttributesCalculatedDataRepo;
+        CostAttributesCalculatedDataRepo costAttributesCalculatedDataRepo;       
+
         public MongoService(IOptions<MongoDbSettings> settings)
         {
-            costAttributesCalculatedDataRepo = new CostAttributesCalculatedDataRepo(settings.Value.ConnectionString, settings.Value.Database);
+            costAttributesCalculatedDataRepo = new CostAttributesCalculatedDataRepo(settings.Value.ConnectionString, settings.Value.Database);          
         }
         // get document by id
-        public async Task<CalculatedElementData> Get(int bidId)
-        {
-            return (await CostAttributesCalculatedDataRepo.GetByBidId(bidId)).FirstOrDefault();
+        public async Task<CalculatedElementData> Get(Expression<Func<CalculatedElementData, bool>> expression)
+        {     
+            return (await costAttributesCalculatedDataRepo.Get(expression)).FirstOrDefault();
+            //return (await costAttributesCalculatedDataRepo.GetByBidId(new CalculatedElementData { BidId = bidId })).FirstOrDefault();
         }
         // add document
         public async Task Add(CalculatedElementData element)
         {
-            await CostAttributesCalculatedDataRepo.Add(element);
+            await costAttributesCalculatedDataRepo.Insert(element);
         }
         // add collection
         public async Task Add(List<CalculatedElementData> elements)
@@ -36,17 +39,13 @@ namespace RedisWebApplication.Services
             {
                 var chunk_length = (i == chunk_count) ? (elements.Count() % chunk_size) : chunk_size;
                 part = elements.GetRange(chunk_size * i, chunk_length);
-                await CostAttributesCalculatedDataRepo.Add(part);
+                await costAttributesCalculatedDataRepo.Insert(part);
             }
             //await CostAttributesCalculatedDataRepo.Add(elements);
         }
-        public async Task Delete()
+        public async Task Delete(int bidId)
         {
-            await CostAttributesCalculatedDataRepo.Delete();
-        }
-        public async Task Delete(int id)
-        {
-            await CostAttributesCalculatedDataRepo.Delete(id);
+            await costAttributesCalculatedDataRepo.Delete(new CalculatedElementData() { BidId = bidId });
         }
     }
 }

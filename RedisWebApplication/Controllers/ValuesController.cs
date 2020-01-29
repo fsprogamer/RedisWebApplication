@@ -6,6 +6,7 @@ using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace RedisWebApplication.Controllers
@@ -38,7 +39,7 @@ namespace RedisWebApplication.Controllers
         [HttpPost("addcostattribute")]
         public async Task<ActionResult<CalculatedElementData>> AddCostAttribute([FromBody]CalculatedElementData calculatedElementData)
         {
-            var keyValue = $"CalculatedElementData:CostingVersionId:{calculatedElementData.CostingVersionId}";
+            var keyValue = $"CalculatedElementData:CostingVersionId:{calculatedElementData.BidId}";
 
             var result = await _redisService.Set(keyValue, calculatedElementData);            
 
@@ -59,8 +60,9 @@ namespace RedisWebApplication.Controllers
         public async Task<ActionResult<CalculatedElementData>> GetCostAttributeMongo(int id)
         {
             var keyValue = $"CalculatedElementData:CostingVersionId:{id}";
+            Expression<Func<CalculatedElementData, bool>> filter = x => x.BidId == id;
 
-            var ret = await _mongoService.Get(id);
+            var ret = await _mongoService.Get(filter);
 
             Log.Information($"Get user: Ok");
             return Ok(ret);
@@ -174,7 +176,7 @@ namespace RedisWebApplication.Controllers
                 
                 IList<Tuple<string, CalculatedElementData>> values = new List<Tuple<string, CalculatedElementData>>();
 
-                values = part.Select(x => new Tuple<string, CalculatedElementData>($"CalculatedElementData:CostingVersionId:{x.CostingVersionId}", x)).ToList();
+                values = part.Select(x => new Tuple<string, CalculatedElementData>($"CalculatedElementData:CostingVersionId:{x.BidId}", x)).ToList();
 
                 var result = await _redisService.SetAll(values);                               
             }
